@@ -10,6 +10,7 @@ import numpy as np
 from abstract_and_reason.graphics import Graphics
 from abstract_and_reason.assets import load_json
 from abstract_and_reason.utils import convert_puzzle_to_prompts
+import json
 
 DEFAULT_PROMPT = """
 Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.
@@ -73,6 +74,8 @@ class Solver:
             'category': [1 for i in prompts]
           }
           completions = self.model.generate_single_answer(dataset)
+          with open(f'completions.json', "w") as f:
+                json.dump(completions, f, indent=4)
           answers  = [x['last_response'] for x in completions]
         except Exception:
             answers = self.random_prediction(
