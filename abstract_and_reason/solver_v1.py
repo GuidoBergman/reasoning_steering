@@ -67,19 +67,17 @@ class Solver:
         Returns:
             list: Predicted outputs for the test puzzles.
         """
-        try:
-          prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
-          dataset = {
+
+        prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
+        dataset = {
             'prompt': prompts,
             'category': [1 for i in prompts]
-          }
-          completions = self.model.generate_single_answer(dataset)
-          with open(f'completions.json', "w") as f:
-                json.dump(completions, f, indent=4)
-          answers  = [x['last_response'] for x in completions]
-        except Exception:
-            answers = self.random_prediction(
-                puzzle_outs_train, puzzle_inps_test)
+        }
+        completions = self.model.generate_single_answer(dataset)
+        with open(f'completions.json', "w") as f:
+            json.dump(completions, f, indent=4)
+        answers  = [x['last_response'] for x in completions]
+
 
         return answers
 
