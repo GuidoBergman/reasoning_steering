@@ -69,10 +69,11 @@ class Solver:
         """
 
         prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
-        dataset = {
-            'prompt': prompts,
-            'category': [1 for i in prompts]
-        }
+        dataset = [{
+            'prompt': prompt,
+            'category': 1
+        } for prompt in prompts]
+        
         completions = self.model.generate_single_answer(dataset)
         with open(f'completions.json', "w") as f:
             json.dump(completions, f, indent=4)
