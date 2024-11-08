@@ -9,7 +9,13 @@
 import numpy as np
 from abstract_and_reason.graphics import Graphics
 from abstract_and_reason.assets import load_json
+from abstract_and_reason.utils import convert_puzzle_to_prompts
 
+DEFAULT_PROMPT = """
+Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.
+
+Your anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation.
+"""
 
 class Solver:
     """
@@ -19,13 +25,20 @@ class Solver:
     and evaluate the performance of a model.
     """
 
-    def __init__(self, prod=False) -> None:
+    def __init__(self, model, prompt=None, prod=False) -> None:
         self.graphics = Graphics()
 
         if prod:
             self.base_path = '/kaggle/input/arc-prize-2024/'
         else:
-            self.base_path = '../data/challenges/'
+            self.base_path = 'data/challenges/'
+
+        self.model = model
+
+        if prompt:
+          self.prompt = prompt
+        else:
+          self.prompt = DEFAULT_PROMPT
 
         self.training_challenges = load_json(
             self.base_path + 'arc-agi_training_challenges.json')
@@ -54,8 +67,13 @@ class Solver:
             list: Predicted outputs for the test puzzles.
         """
         try:
-            # Your board prediction solution goes here !
-            raise NotImplementedError
+          prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
+          dataset = {
+            'prompt': prompts,
+            'category': [1 for i in prompts]
+          }
+          completions = self.model.generate_single_answer(dataset)
+          answers  = [x['last_response'] for x in completions]
         except Exception:
             answers = self.random_prediction(
                 puzzle_outs_train, puzzle_inps_test)

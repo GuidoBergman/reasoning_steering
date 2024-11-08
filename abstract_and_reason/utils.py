@@ -1,4 +1,5 @@
 import numpy as np
+import pprint
 
 def get_score(model_answers, real_answers):
     """
@@ -67,3 +68,30 @@ def get_tiny_arc(challenges, max_n, max_m):
             ids_sizes.append(challenge_id)
     
     return ids_sizes
+
+
+# This function was adapted from https://github.com/olimoz/mech-interp-reasoning/blob/main/assets/Execute_Challenges_Gemma2.ipynb
+def convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test):
+    results = []
+    
+    train_prompt = []
+    for i, (array_input, array_output) in enumerate(zip(puzzle_inps_train, puzzle_outs_train)):
+        train_prompt.append("=============") if i > 0 else None
+        train_prompt.append(f"TRAIN Pair {i}")
+        train_prompt.append(f"INPUT. Shape={array_input.shape}")
+        train_prompt.append(pprint.pformat(array_input))
+        train_prompt.append(f"OUTPUT. Shape={array_output.shape}")
+        train_prompt.append(pprint.pformat(array_output))
+
+
+    for i, test_input in enumerate(puzzle_inps_test):
+        test_prompt = []
+        test_prompt.append("==========================")
+        test_prompt.append(f"TEST Pair 0")
+        test_prompt.append(f"INPUT. Shape={test_input.shape}")
+        test_prompt.append(pprint.pformat(test_input))
+        test_prompt.append('OUTPUT. ')
+
+        results.append('\n'.join(train_prompt) + '\n'.join(test_prompt))
+
+    return results
