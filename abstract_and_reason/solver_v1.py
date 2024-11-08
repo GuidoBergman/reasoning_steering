@@ -16,6 +16,7 @@ DEFAULT_PROMPT = """
 Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.
 
 Your anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation.
+
 """
 
 class Solver:
@@ -68,12 +69,12 @@ class Solver:
             list: Predicted outputs for the test puzzles.
         """
 
-        prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
+        puzzle_prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
         dataset = [{
-            'prompt': prompt,
+            'prompt': self.prompt + puzzle_prompt,
             'category': 1
-        } for prompt in prompts]
-        
+        } for puzzle_prompt in puzzle_prompts]
+
         completions = self.model.generate_single_answer(dataset)
         with open(f'completions.json', "w") as f:
             json.dump(completions, f, indent=4)
