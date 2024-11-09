@@ -78,7 +78,9 @@ class Solver:
         completions = self.model.generate_single_answer(dataset)
         with open(f'completions.json', "w") as f:
             json.dump(completions, f, indent=4)
-        answers  = [x['last_response'] for x in completions]
+        answers  = [x['last_response'] for x in completions])
+        answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers]
+        answers = [eval(answer) for answer in answers]
 
 
         return answers
