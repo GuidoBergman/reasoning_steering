@@ -96,9 +96,9 @@ class ModelBase(ABC):
 
                 responses = []
                 for instruction, generation in zip(instructions, generation_toks):
-                    response = self.tokenizer.decode(generation, skip_special_tokens=True).strip() 
+                    response = self.tokenizer.decode(generation, skip_special_tokens=True).strip()
 
-		    instruction = instruction.strip()
+                    instruction = instruction.strip()
 			
                     # Remove the instruction from the response
                     last_message_index = response.rfind(instruction)
