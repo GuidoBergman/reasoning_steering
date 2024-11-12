@@ -5,9 +5,10 @@ import os
 import argparse
 
 from dataset.load_dataset import load_dataset, load_dataset_split
-from dataset.download_dataset import download_dataset
 from dataset.split_dataset import split_dataset
 from dataset.contrastive_pairs import get_contrastive_pairs
+
+from abstract_and_reason import solver_v1, utils
 
 from pipeline.config import Config
 from pipeline.model_utils.model_factory import construct_model_base
@@ -25,15 +26,15 @@ def parse_arguments():
 
 
 
-def generate_and_save_candidate_directions(cfg, model_base, harmful_train, harmless_train):
+def generate_and_save_candidate_directions(cfg, model_base, train_correct, train_incorrect):
     """Generate and save candidate directions."""
     if not os.path.exists(os.path.join(cfg.artifact_path(), 'generate_directions')):
         os.makedirs(os.path.join(cfg.artifact_path(), 'generate_directions'))
 
     mean_diffs = generate_directions(
         model_base,
-        harmful_train,
-        harmless_train,
+        train_correct, 
+        train_incorrect
         artifact_dir=os.path.join(cfg.artifact_path(), "generate_directions"))
 
     torch.save(mean_diffs, os.path.join(cfg.artifact_path(), 'generate_directions/mean_diffs.pt'))
@@ -41,47 +42,24 @@ def generate_and_save_candidate_directions(cfg, model_base, harmful_train, harml
     return mean_diffs
 
 
-def generate_and_save_completions_for_dataset(cfg, model_base, fwd_pre_hooks, fwd_hooks, intervention_label, dataset_name, dataset=None):
-    """Generate and save completions for a dataset."""
-    if not os.path.exists(os.path.join(cfg.artifact_path(), 'completions')):
-        os.makedirs(os.path.join(cfg.artifact_path(), 'completions'))
+def generate_and_evaluate_solutions(dataset, solver, output_path, fwd_pre_hooks=[], fwd_hooks=[]): 
+    correct_challenges, incorrect_challenges = [], []
+    completions = []
+    for challenge in dataset:
+        answer, puzzle_completions = solver.predict([challenge], fwd_pre_hooks, fwd_hooks)
+        score = utils.get_score(answer, challenge['correct_answer'])
+        if score == 1:
+            correct_challenges.append(challenge)
+        else:
+            incorrect_challenges.append(challenge)
 
-    if dataset is None:
-        dataset = load_dataset(dataset_name)
+        completions.append(puzzle_completions)
 
-    completions = model_base.generate_completions(dataset, fwd_pre_hooks=fwd_pre_hooks, fwd_hooks=fwd_hooks, max_new_tokens=cfg.max_new_tokens)
-    
-    with open(f'{cfg.artifact_path()}/completions/{dataset_name}_{intervention_label}_completions.json', "w") as f:
-        json.dump(completions, f, indent=4)
-
-
-def generate_and_save_single_answer_for_dataset(cfg, model_base, fwd_pre_hooks, fwd_hooks, intervention_label, dataset_name, dataset=None):
-    """Generate and save completions for a dataset."""
-    if not os.path.exists(os.path.join(cfg.artifact_path(), 'completions')):
-        os.makedirs(os.path.join(cfg.artifact_path(), 'completions'))
-
-    if dataset is None:
-        dataset = load_dataset(dataset_name)
-
-    completions = model_base.generate_single_answer(dataset, fwd_pre_hooks=fwd_pre_hooks, fwd_hooks=fwd_hooks, max_new_tokens=cfg.max_new_tokens)
-    
-    with open(f'{cfg.artifact_path()}/completions/{dataset_name}_{intervention_label}_completions.json', "w") as f:
-        json.dump(completions, f, indent=4)
+    with open(output_path, "w") as f:
+            json.dump(completions, f, indent=4)
 
 
-def evaluate_completions_and_save_results_for_dataset(cfg, intervention_label, dataset_name, eval_methodologies):
-    """Evaluate completions and save results for a dataset."""
-    with open(os.path.join(cfg.artifact_path(), f'completions/{dataset_name}_{intervention_label}_completions.json'), 'r') as f:
-        completions = json.load(f)
-
-    evaluation = evaluate_jailbreak(
-        completions=completions,
-        methodologies=eval_methodologies,
-        evaluation_path=os.path.join(cfg.artifact_path(), "completions", f"{dataset_name}_{intervention_label}_evaluations.json"),
-    )
-
-    with open(f'{cfg.artifact_path()}/completions/{dataset_name}_{intervention_label}_evaluations.json', "w") as f:
-        json.dump(evaluation, f, indent=4)
+    return correct_challenges, incorrect_challenges
 
 
 def run_pipeline(model_path):
@@ -91,70 +69,58 @@ def run_pipeline(model_path):
 
     model_base = construct_model_base(cfg.model_path)
 
+    solver = solver_v1.Solver(model_base)
+
 
     # 1. Gather jailbreak prompts and forbidden questions
-    download_dataset(cfg.jailbreak_prompts_dataset)
+    #download_dataset(cfg.jailbreak_prompts_dataset)
 
     # 2. Generate interactions with the baseline model
-    dataset_name = 'jailbreak_prompts'
     baseline_fwd_pre_hooks, baseline_fwd_hooks = [], []
-    generate_and_save_completions_for_dataset(cfg, model_base, baseline_fwd_pre_hooks, baseline_fwd_hooks, 'baseline', dataset_name)
+    small_challenges = utils.get_tiny_arc(solver.training_challenges, max_n=8, max_m=8)
+    train_dataset = load_dataset(small_challenges, solver=solver)
+    correct_challenges, incorrect_challenges = generate_and_evaluate_solutions(train_dataset, solver, 
+                                                                               'completions_train_baseline.json', baseline_fwd_pre_hooks, baseline_fwd_hooks)  
+    print(f'--------Training-------------')
+    print(f'Correct challenges: {len(correct_challenges)}')
+    print(f'Incorrect challenges: {len(incorrect_challenges)}')
+
 
     # 3. Filter interactions
-    intervention_label = 'baseline'
-    evaluate_completions_and_save_results_for_dataset(cfg, intervention_label, dataset_name, eval_methodologies=cfg.jailbreak_eval_methodologies)
-    evaluations_file_path = os.path.join(cfg.artifact_path(), 'completions', f'{dataset_name}_{intervention_label}_evaluations.json')
-    split_dataset(evaluations_file_path, train_size_successful=cfg.train_size_successful, 
-                  test_size_unsuccessful=cfg.test_size_unsuccessful)
+    train_correct_ids, train_incorrect_ids, test_ids = split_dataset(correct_challenges, incorrect_challenges, 
+                                train_size_correct=cfg.train_size_correct, train_size_incorrect=cfg.train_size_incorrect)
 
 
     # 4. Find the direction representing the jailbreak feature
-    train = load_dataset_split(split='train')
-    harmful_train, harmless_train = get_contrastive_pairs(train)
-    candidate_directions = generate_and_save_candidate_directions(cfg, model_base, harmful_train, harmless_train)
+    #train = load_dataset_split(split='train')
+    train_correct, train_incorrect = get_contrastive_pairs(train_correct_ids, train_incorrect_ids, solver)
+    candidate_directions = generate_and_save_candidate_directions(cfg, model_base, train_correct, train_incorrect)
     pos = cfg.pos
     layer = cfg.layer
     direction = candidate_directions[pos][layer]
 
     # 5. Intervene the model
-    ablation_fwd_pre_hooks, ablation_fwd_hooks = get_all_direction_ablation_hooks(model_base, direction)
-    actadd_fwd_pre_hooks, actadd_fwd_hooks = [(model_base.model_block_modules[layer], get_activation_addition_input_pre_hook(vector=direction, coeff=-1.0))], []
+    #ablation_fwd_pre_hooks, ablation_fwd_hooks = get_all_direction_ablation_hooks(model_base, direction)
+    actadd_fwd_pre_hooks, actadd_fwd_hooks = [(model_base.model_block_modules[layer], get_activation_addition_input_pre_hook(vector=direction, coeff=1.0))], []
 
     
-    # 6. Generate completions
-    test = load_dataset_split(split='test')
-    generate_and_save_completions_for_dataset(cfg, model_base, baseline_fwd_pre_hooks, baseline_fwd_hooks, 'baseline', 'harmful_test', dataset=test)
-    generate_and_save_completions_for_dataset(cfg, model_base, ablation_fwd_pre_hooks, ablation_fwd_hooks, 'ablation', 'harmful_test', dataset=test)
-    generate_and_save_completions_for_dataset(cfg, model_base, actadd_fwd_pre_hooks, actadd_fwd_hooks, 'actadd', 'harmful_test', dataset=test)
+    # 6a. Generate completions with baseline in the test set
+    baseline_fwd_pre_hooks, baseline_fwd_hooks = [], []
+    test_dataset = load_dataset(test_ids, solver=solver)
+    correct_challenges, incorrect_challenges = generate_and_evaluate_solutions(test_dataset, solver, 
+                                                                               'completions_test_baseline.json', baseline_fwd_pre_hooks, baseline_fwd_hooks)
 
+    print(f'--------Test baseline-------------')
+    print(f'Correct challenges: {len(correct_challenges)}')
+    print(f'Incorrect challenges: {len(incorrect_challenges)}')
 
-    # 7. Evaluate completions
-    print('----------------------------------Harmful----------------------------------')
-    print('------------Baseline------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'baseline', 'harmful_test', eval_methodologies=cfg.jailbreak_eval_methodologies)
-    print('------------Ablation------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'ablation', 'harmful_test', eval_methodologies=cfg.jailbreak_eval_methodologies)
-    print('------------Actadd------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'actadd', 'harmful_test', eval_methodologies=cfg.jailbreak_eval_methodologies)
+    # 6b. Generate completions with the intervened model in the test set
+    correct_challenges, incorrect_challenges = generate_and_evaluate_solutions(test_dataset, solver, 
+                                                                               'completions_test_baseline.json', actadd_fwd_pre_hooks, actadd_fwd_hooks)
     
-
-
-    download_dataset(cfg.harmless_dataset)
-    harmless_test_size = cfg.test_size_harmless
-    harmless_test = random.sample(load_dataset(cfg.harmless_dataset), harmless_test_size)
-
-    generate_and_save_single_answer_for_dataset(cfg, model_base, baseline_fwd_pre_hooks, baseline_fwd_hooks, 'baseline', 'harmless_test', dataset=harmless_test)
-    generate_and_save_single_answer_for_dataset(cfg, model_base, ablation_fwd_pre_hooks, ablation_fwd_hooks, 'ablation', 'harmless_test', dataset=harmless_test)
-    generate_and_save_single_answer_for_dataset(cfg, model_base, actadd_fwd_pre_hooks, actadd_fwd_hooks, 'actadd', 'harmless_test', dataset=harmless_test)
-
-    print('----------------------------------Harmless----------------------------------')
-    print('------------Baseline------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'baseline', 'harmless_test', eval_methodologies=cfg.refusal_eval_methodologies)
-    print('------------Ablation------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'ablation', 'harmless_test', eval_methodologies=cfg.refusal_eval_methodologies)
-    print('------------Actadd------------')
-    evaluate_completions_and_save_results_for_dataset(cfg, 'actadd', 'harmless_test', eval_methodologies=cfg.refusal_eval_methodologies)
-
+    print(f'--------Test intervened-------------')
+    print(f'Correct challenges: {len(correct_challenges)}')
+    print(f'Incorrect challenges: {len(incorrect_challenges)}')
 
 if __name__ == "__main__":
     args = parse_arguments()

@@ -123,19 +123,21 @@ class ModelBase(ABC):
         generation_config.pad_token_id = self.tokenizer.pad_token_id
 
         completions = []
-        instructions = [x['prompt'] for x in dataset]
+        questions = [x['question'] for x in dataset]
         categories = [x['category'] for x in dataset]
+        correct_answers = [x['correct_answer'] for x in dataset]
 
 
         for i in tqdm(range(0, len(dataset), batch_size)):
-                batch_responses, _ = self._generate_single_answer(instructions[i:i+batch_size], generation_config,
+                batch_responses, _ = self._generate_single_answer(questions[i:i+batch_size], generation_config,
                                                                           fwd_pre_hooks, fwd_hooks, chat_histories=None)            
 
                 for generation_idx, response, in enumerate(batch_responses):
 
                     completions.append({
                         'category': categories[i + generation_idx],
-                        'prompt': instructions[i + generation_idx],
+                        'correct_answer': correct_answers[i + generation_idx],
+                        'prompt': questions[i + generation_idx],
                         'last_response': response  # Keep the format consistent
                     })
 

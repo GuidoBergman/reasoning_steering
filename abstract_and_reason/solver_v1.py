@@ -55,35 +55,15 @@ class Solver:
         self.sample_submission = load_json(
             self.base_path + 'sample_submission.json')
 
-    def predict(self, puzzle_inps_train, puzzle_outs_train, puzzle_inps_test, puzzle_outs_test=None):
-        """
-        Predicts the outputs for test puzzles based on training inputs and outputs.
+    def predict(self, dataset, fwd_pre_hooks=[], fwd_hooks=[]):
 
-        Args:
-            puzzle_inps_train (list): Training input puzzles.
-            puzzle_outs_train (list): Training output puzzles.
-            puzzle_inps_test (list): Test input puzzles.
-            puzzle_outs_test (list, optional): Test output puzzles, used for validation purposes.
-
-        Returns:
-            list: Predicted outputs for the test puzzles.
-        """
-
-        puzzle_prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
-        dataset = [{
-            'prompt': self.prompt + puzzle_prompt,
-            'category': 1
-        } for puzzle_prompt in puzzle_prompts]
-
-        completions = self.model.generate_single_answer(dataset)
-        with open(f'completions.json', "w") as f:
-            json.dump(completions, f, indent=4)
+        completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks)
         answers  = [x['last_response'] for x in completions]
         answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers]
         answers = [eval(answer) for answer in answers]
 
 
-        return answers
+        return answers, completions
 
     def random_prediction(self, puzzle_outs_train, puzzle_inps_test):
         """
@@ -133,6 +113,22 @@ class Solver:
         """
         # Have you trained a model? use this function to test it.
         raise NotImplementedError
+    
+    def convert_challenge_to_prompts(self, challenge_id, challenges=None, solutions=None):
+        if challenges == None:
+            challenges = self.training_challenges
+
+        if solutions == None:
+            solutions = self.training_solutions
+ 
+        puzzle_inps_train, puzzle_outs_train, puzzle_inps_test, puzzle_outs_test = self.process_challenge(challenge_id=challenge_id, 
+                                                                                                        challenges=challenges, 
+                                                                                                        solutions=solutions)  
+        
+        puzzle_prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
+        prompts = [ self.prompt + puzzle_prompt for puzzle_prompt in puzzle_prompts]
+         
+        return prompts, puzzle_outs_test
 
     def display_train(self, task_id, puzzle_inps_train, puzzle_outs_train):
         """

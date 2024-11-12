@@ -6,27 +6,20 @@ import os
 
 random.seed(42)
 
-def split_dataset(evaluations_file_path, train_size_successful = 256, test_size_unsuccessful = 100):
-    with open(evaluations_file_path, 'r') as f:
-        evaluation = json.load(f)
+def split_dataset(correct_challenges, incorrect_challenges, 
+                                train_size_correct=256, train_size_incorrect=100):
 
-    successful_jailbreaks = [completion for completion in evaluation['completions'] if completion['is_jailbreak_llamaguard2'] and completion['is_jailbreak_harmbench'] and len(completion['prompt']) < 15000]
-    random.shuffle(successful_jailbreaks)
+    random.shuffle(correct_challenges)
+    random.shuffle(incorrect_challenges)
 
-
-    unsuccessful_jailbreaks = [completion for completion in evaluation['completions'] if  not completion['is_jailbreak_llamaguard2'] and not completion['is_jailbreak_harmbench']  and len(completion['prompt']) < 15000]
-    random.shuffle(unsuccessful_jailbreaks)
-
-
-
-
-    successful_train = successful_jailbreaks[:train_size_successful]
-    train_file_path = os.path.join(dataset_dir_path, 'splits', 'train.json')
-    dump_json(successful_train, train_file_path)
+    train_correct = correct_challenges[:train_size_correct] 
+    train_incorrect = incorrect_challenges[:train_size_incorrect]
+    #train_file_path = os.path.join(dataset_dir_path, 'splits', 'train.json')
+    #dump_json(successful_train, train_file_path)
 
 
     # The remaining samples will be used for test
-    test = successful_jailbreaks[train_size_successful:]  + unsuccessful_jailbreaks[:test_size_unsuccessful]
-    test_file_path = os.path.join(dataset_dir_path, 'splits', 'test.json')
-    dump_json(test, test_file_path)
+    test = correct_challenges[train_size_correct:]  + incorrect_challenges[train_size_incorrect:]
+
+    return train_correct, train_incorrect, test
     

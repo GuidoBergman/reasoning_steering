@@ -42,19 +42,19 @@ def get_mean_activations(model, tokenizer, instructions ,tokenize_instructions_f
 
     return mean_activations
 
-def get_mean_diff(model, tokenizer, harmful_instructions, harmless_instructions, tokenize_instructions_fn, block_modules: List[torch.nn.Module], batch_size=1, positions=[-1]):
-    mean_activations_harmful = get_mean_activations(model, tokenizer, harmful_instructions, tokenize_instructions_fn, block_modules, batch_size=batch_size, positions=positions)
-    mean_activations_harmless = get_mean_activations(model, tokenizer, harmless_instructions, tokenize_instructions_fn, block_modules, batch_size=batch_size, positions=positions)
+def get_mean_diff(model, tokenizer, train_correct, train_incorrect, tokenize_instructions_fn, block_modules: List[torch.nn.Module], batch_size=1, positions=[-1]):
+    mean_activations_correct = get_mean_activations(model, tokenizer, train_correct, tokenize_instructions_fn, block_modules, batch_size=batch_size, positions=positions)
+    mean_activations_incorrect = get_mean_activations(model, tokenizer, train_incorrect, tokenize_instructions_fn, block_modules, batch_size=batch_size, positions=positions)
 
-    mean_diff: Float[Tensor, "n_positions n_layers d_model"] = mean_activations_harmful - mean_activations_harmless
+    mean_diff: Float[Tensor, "n_positions n_layers d_model"] = mean_activations_correct - mean_activations_incorrect
 
     return mean_diff
 
-def generate_directions(model_base: ModelBase, harmful_instructions, harmless_instructions, artifact_dir):
+def generate_directions(model_base: ModelBase, train_correct, train_incorrect, artifact_dir):
     if not os.path.exists(artifact_dir):
         os.makedirs(artifact_dir)
 
-    mean_diffs = get_mean_diff(model_base.model, model_base.tokenizer, harmful_instructions, harmless_instructions, model_base.tokenize_instructions_fn, model_base.model_block_modules, positions=list(range(-len(model_base.eoi_toks), 0)))
+    mean_diffs = get_mean_diff(model_base.model, model_base.tokenizer, train_correct, train_incorrect, model_base.tokenize_instructions_fn, model_base.model_block_modules, positions=list(range(-len(model_base.eoi_toks), 0)))
 
     assert mean_diffs.shape == (len(model_base.eoi_toks), model_base.model.config.num_hidden_layers, model_base.model.config.hidden_size)
     assert not mean_diffs.isnan().any()
