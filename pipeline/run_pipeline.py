@@ -34,7 +34,7 @@ def generate_and_save_candidate_directions(cfg, model_base, train_correct, train
     mean_diffs = generate_directions(
         model_base,
         train_correct, 
-        train_incorrect
+        train_incorrect,
         artifact_dir=os.path.join(cfg.artifact_path(), "generate_directions"))
 
     torch.save(mean_diffs, os.path.join(cfg.artifact_path(), 'generate_directions/mean_diffs.pt'))
