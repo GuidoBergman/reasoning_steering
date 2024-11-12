@@ -4,7 +4,7 @@ import json
 import os
 import argparse
 
-from dataset.load_dataset import load_dataset, load_dataset_split
+from dataset.load_dataset import load_dataset
 from dataset.split_dataset import split_dataset
 from dataset.contrastive_pairs import get_contrastive_pairs
 
