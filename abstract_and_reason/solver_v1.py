@@ -62,6 +62,7 @@ class Solver:
         answers  = [x['last_response'] for x in completions]
         answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers]
         answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers]
+        answers = [answer.strip() for answer in answers]
         answers = [eval(answer) for answer in answers]
 
 
