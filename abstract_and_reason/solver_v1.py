@@ -11,6 +11,7 @@ from abstract_and_reason.graphics import Graphics
 from abstract_and_reason.assets import load_json
 from abstract_and_reason.utils import convert_puzzle_to_prompts
 import json
+import re
 
 DEFAULT_PROMPT = """
 Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.
@@ -59,6 +60,7 @@ class Solver:
 
         completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks)
         answers  = [x['last_response'] for x in completions]
+        answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers]
         answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers]
         answers = [eval(answer) for answer in answers]
 
