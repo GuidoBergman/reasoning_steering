@@ -6,7 +6,7 @@ def load_dataset(challenge_ids, solver):
         questions_challenge, solutions_challenge = solver.convert_challenge_to_prompts(id)
         questions += questions_challenge
         solutions += solutions_challenge 
-        ids += [id for i in range(len(questions_challenge))]
+        ids += [id for _ in range(len(questions_challenge))]
 
     dataset = [{
             'question': question,
