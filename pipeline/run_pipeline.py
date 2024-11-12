@@ -15,7 +15,7 @@ from pipeline.model_utils.model_factory import construct_model_base
 from pipeline.utils.hook_utils import get_activation_addition_input_pre_hook, get_all_direction_ablation_hooks
 
 from pipeline.submodules.generate_directions import generate_directions
-from pipeline.submodules.evaluate_jailbreak import evaluate_jailbreak
+#from pipeline.submodules.evaluate_jailbreak import evaluate_jailbreak
 
 
 def parse_arguments():
@@ -116,7 +116,7 @@ def run_pipeline(model_path):
 
     # 6b. Generate completions with the intervened model in the test set
     correct_challenges, incorrect_challenges = generate_and_evaluate_solutions(test_dataset, solver, 
-                                                                               'completions_test_baseline.json', actadd_fwd_pre_hooks, actadd_fwd_hooks)
+                                                                               'completions_test_act_add.json', actadd_fwd_pre_hooks, actadd_fwd_hooks)
     
     print(f'--------Test intervened-------------')
     print(f'Correct challenges: {len(correct_challenges)}')
