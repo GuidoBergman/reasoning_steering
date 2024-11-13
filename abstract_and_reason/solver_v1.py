@@ -60,9 +60,11 @@ class Solver:
 
         completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks)
         answers  = [x['last_response'] for x in completions]
-        answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers]
-        answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers]
-        answers = [answer.strip() for answer in answers]
+        answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers] # Add missing ',' between two numbers
+        answers = [re.sub(r'\s+', '', answer) for answer in answers] # Remove all the whitespaces
+        answers = [answer.replace("][", "],[") for answer in answers]
+        answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers] 
+        print(answers)
         answers = [eval(answer) for answer in answers]
 
 
