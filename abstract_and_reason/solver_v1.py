@@ -120,10 +120,10 @@ class Solver:
         raise NotImplementedError
     
     def convert_challenge_to_prompts(self, challenge_id, challenges=None, solutions=None):
-        if challenges == None:
+        if not challenges:
             challenges = self.training_challenges
 
-        if solutions == None:
+        if not solutions:
             solutions = self.training_solutions
  
         puzzle_inps_train, puzzle_outs_train, puzzle_inps_test, puzzle_outs_test = self.process_challenge(challenge_id=challenge_id, 
