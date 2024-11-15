@@ -7,6 +7,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import numpy as np
+from numpy import array
 from abstract_and_reason.graphics import Graphics
 from abstract_and_reason.assets import load_json
 from abstract_and_reason.utils import convert_puzzle_to_prompts
@@ -63,7 +64,6 @@ class Solver:
         answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers] # Add missing ',' between two numbers
         answers = [re.sub(r'\s+', '', answer) for answer in answers] # Remove all the whitespaces
         answers = [answer.replace("][", "],[") for answer in answers]
-        answers = ['np.' + answer if answer.startswith('array') else answer for answer in answers] 
         print(answers)
         answers = [eval(answer) for answer in answers]
 
