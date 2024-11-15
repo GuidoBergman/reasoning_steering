@@ -1,9 +1,9 @@
 from abstract_and_reason.utils import convert_array_to_str
 
-def load_dataset(challenge_ids, solver):
+def load_dataset(challenge_ids, solver, challenges=None, solutions=None):
     questions, solutions, ids = [], [], []
     for id in challenge_ids:
-        questions_challenge, solutions_challenge = solver.convert_challenge_to_prompts(id)
+        questions_challenge, solutions_challenge = solver.convert_challenge_to_prompts(id, challenges, solutions)
         questions += questions_challenge
         solutions += solutions_challenge 
         ids += [id for _ in range(len(questions_challenge))]
