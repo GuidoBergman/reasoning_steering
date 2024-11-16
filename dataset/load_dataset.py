@@ -1,11 +1,11 @@
 from abstract_and_reason.utils import convert_array_to_str
 
 def load_dataset(challenge_ids, solver, challenges=None, solutions=None):
-    questions, solutions, ids = [], [], []
+    questions, solutions_list, ids = [], [], []
     for id in challenge_ids:
         questions_challenge, solutions_challenge = solver.convert_challenge_to_prompts(id, challenges, solutions)
         questions += questions_challenge
-        solutions += solutions_challenge 
+        solutions_list += solutions_challenge 
         ids += [id for _ in range(len(questions_challenge))]
 
     dataset = [{
@@ -14,7 +14,7 @@ def load_dataset(challenge_ids, solver, challenges=None, solutions=None):
             'first_response': None,
             'category': id,
             'correct_answer': convert_array_to_str(solution)
-        } for question, solution, id in zip(questions, solutions, ids)
+        } for question, solution, id in zip(questions, solutions_list, ids)
     ]
  
     return dataset
