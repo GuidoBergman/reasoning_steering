@@ -13,7 +13,8 @@ def load_dataset(challenge_ids, solver, challenges=None, solutions=None):
             'prompt': None,
             'first_response': None,
             'category': id,
-            'correct_answer': convert_array_to_str(solution)
+            'correct_answer': solution,
+            'correct_answer_str': convert_array_to_str(solution)
         } for question, solution, id in zip(questions, solutions_list, ids)
     ]
  
