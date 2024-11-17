@@ -97,4 +97,4 @@ def convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_
     return results
 
 def convert_array_to_str(array):
-    return 'Shape={array.shape}\n' + pprint.pformat(array)
+    return f'Shape={array.shape}\n' + pprint.pformat(array)
