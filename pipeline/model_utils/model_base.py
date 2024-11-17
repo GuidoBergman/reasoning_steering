@@ -125,7 +125,7 @@ class ModelBase(ABC):
         completions = []
         questions = [x['question'] for x in dataset]
         categories = [x['category'] for x in dataset]
-        correct_answers = [x['correct_answer'] for x in dataset]
+        correct_answers = [x['correct_answer_str'] for x in dataset]
 
 
         for i in tqdm(range(0, len(dataset), batch_size)):
