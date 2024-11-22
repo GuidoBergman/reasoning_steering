@@ -139,7 +139,7 @@ class ModelBase(ABC):
                         'category': categories[i + generation_idx],
                         'correct_answer': correct_answers[i + generation_idx],
                         'prompt': questions[i + generation_idx],
-                        'last_response': response  # Keep the format consistent
+                        'last_response_str': response 
                     })
 
 
