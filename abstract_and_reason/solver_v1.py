@@ -60,20 +60,25 @@ class Solver:
 
     def predict(self, dataset, fwd_pre_hooks=[], fwd_hooks=[]):
 
-        completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks, max_new_tokens=10000)
+        completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks, max_new_tokens=5000)
         answers  = [x['last_response'] for x in completions]
+        answers = self.evaluate_answers(answers)
+
+
+        return answers, completions
+    
+
+    def evaluate_answers(self, answers): 
         answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers] # Add missing ',' between two numbers
         answers = [re.sub(r'\s+', '', answer) for answer in answers] # Remove all the whitespaces
         answers = [answer.replace("][", "],[") for answer in answers]
         try:
             answers = [eval(answer) for answer in answers]
         except:
-            answers = [[]]
+            answers = [[]]   
 
+        return answers
 
-        return answers, completions
-
-    
 
     def convert_challenge_to_prompts(self, challenge_id, challenges=None, solutions=None):
         if not challenges:
