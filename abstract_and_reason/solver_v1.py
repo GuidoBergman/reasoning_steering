@@ -75,7 +75,11 @@ class Solver:
         try:
             answers = [eval(answer) for answer in answers]
         except:
-            answers = [[]]   
+            answers = [answer[:-1] + '])' for answer in answers] # Maybe adding a bracket at the end solves the problem
+            try:              
+                answers = [eval(answer) for answer in answers]
+            except:
+                answers = [[]]   
 
         return answers
 
