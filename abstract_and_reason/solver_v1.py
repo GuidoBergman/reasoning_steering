@@ -57,6 +57,7 @@ class Solver:
         self.sample_submission = load_json(
             self.base_path + 'sample_submission.json')
 
+
     def predict(self, dataset, fwd_pre_hooks=[], fwd_hooks=[]):
 
         completions = self.model.generate_single_answer(dataset, fwd_pre_hooks, fwd_hooks, max_new_tokens=10000)
@@ -64,61 +65,16 @@ class Solver:
         answers = [re.sub(r'(?<=\d) (?=\d)', ',', answer) for answer in answers] # Add missing ',' between two numbers
         answers = [re.sub(r'\s+', '', answer) for answer in answers] # Remove all the whitespaces
         answers = [answer.replace("][", "],[") for answer in answers]
-        print(answers)
-        answers = [eval(answer) for answer in answers]
+        try:
+            answers = [eval(answer) for answer in answers]
+        except:
+            answers = [[]]
 
 
         return answers, completions
 
-    def random_prediction(self, puzzle_outs_train, puzzle_inps_test):
-        """
-        Generates random predictions for the test puzzles by averaging the shape of the training outputs.
-
-        Args:
-            puzzle_outs_train (list): Training output puzzles.
-            puzzle_inps_test (list): Test input puzzles.
-
-        Returns:
-            list: Randomly generated predictions for the test puzzles.
-        """
-        answers = []
-        avg_shape = np.ceil(np.array([np.array(p.shape) for p in puzzle_outs_train]).mean(
-            0)).astype(int)  # I took average shape of output puzzles
-        for _ in range(len(puzzle_inps_test)):
-            # cause 0 to 9 options as mentioned in competition
-            answers.append(np.random.randint(0, 10, size=avg_shape))
-
-        return answers
-
-    def train(self):
-        """
-        Placeholder for the training logic of the model.
-
-        Raises:
-            NotImplementedError: This function is not implemented.
-        """
-        raise NotImplementedError
-
-    def validate(self):
-        """
-        Placeholder for the validation logic of the model.
-
-        Raises:
-            NotImplementedError: This function is not implemented.
-        """
-        # Have you trained a model? use this function to validate it.
-        raise NotImplementedError
-
-    def test(self):
-        """
-        Placeholder for the testing logic of the model on unseen test data.
-
-        Raises:
-            NotImplementedError: This function is not implemented.
-        """
-        # Have you trained a model? use this function to test it.
-        raise NotImplementedError
     
+
     def convert_challenge_to_prompts(self, challenge_id, challenges=None, solutions=None):
         if not challenges:
             challenges = self.training_challenges
