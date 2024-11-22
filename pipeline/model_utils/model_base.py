@@ -73,7 +73,7 @@ class ModelBase(ABC):
         if chat_histories is None:
             chat_histories = [[] for _ in range(len(instructions))]
         conversations = [self.get_conversation(instruction, chat_history) for instruction, chat_history in zip(instructions, chat_histories)]
-        toks = self.tokenizer.apply_chat_template(conversations, add_generation_prompt=True,padding=True,truncation=False, return_tensors="pt", return_dict=True).to("cuda")
+        toks = self.tokenizer.apply_chat_template(conversations, add_generation_prompt=True,padding=True,truncation=False, return_tensors="pt").to("cuda")
         return toks
 
 
@@ -90,8 +90,7 @@ class ModelBase(ABC):
 
         with add_hooks(module_forward_pre_hooks=fwd_pre_hooks, module_forward_hooks=fwd_hooks):
                 generation_toks = self.model.generate(
-                    input_ids=tokenized_instructions['input_ids'].to(self.model.device),
-                    attention_mask=tokenized_instructions['attention_mask'].to(self.model.device),
+                    input_ids=tokenized_instructions.to(self.model.device),
                     generation_config=generation_config,
                 )
 
@@ -106,8 +105,9 @@ class ModelBase(ABC):
                     if last_message_index != -1:
                         response = response[last_message_index + len(instruction):].strip()
 
-                    model_start_msg = 'model\n'
-                    if response.startswith(model_start_msg):
+                    model_start_msgs = ['model\n', 'assistant\n']
+                    for model_start_msg in model_start_msgs:
+                      if response.startswith(model_start_msg):
                         response = response[len(model_start_msg):]
 
                     responses.append(response)
@@ -121,7 +121,7 @@ class ModelBase(ABC):
     def generate_single_answer(self, dataset, fwd_pre_hooks=[], fwd_hooks=[], batch_size=2, max_new_tokens=300):
         """This function generates a response to a prompt."""
         generation_config = GenerationConfig(max_new_tokens=max_new_tokens, do_sample=False)
-        generation_config.pad_token_id = self.tokenizer.eos_token_id
+        generation_config.pad_token_id = self.tokenizer.pad_token_id
 
         completions = []
         questions = [x['question'] for x in dataset]
@@ -145,37 +145,3 @@ class ModelBase(ABC):
 
         return completions
 
-
-    def generate_completions(self, dataset, fwd_pre_hooks=[], fwd_hooks=[], batch_size=2, max_new_tokens=300):
-        """This function generate a first response to a prompt and then a second response to a question."""
-        generation_config = GenerationConfig(max_new_tokens=max_new_tokens, do_sample=False)
-        generation_config.pad_token_id = self.tokenizer.eos_token_id
-
-        completions = []
-        instructions = [x['prompt'] for x in dataset]
-        categories = [x['category'] for x in dataset]
-        questions = [x['question'] for x in dataset]
-
-
-        for i in tqdm(range(0, len(dataset), batch_size)):
-                first_responses, chat_histories = self._generate_single_answer(instructions[i:i+batch_size], generation_config,
-                                                                          fwd_pre_hooks, fwd_hooks, chat_histories=None)            
-
- 
-                last_responses, _ = self._generate_single_answer(questions[i:i+batch_size], generation_config,
-                                                                          fwd_pre_hooks, fwd_hooks,
-                                                                          chat_histories)        
-                
-
-                for generation_idx, (first_response, last_response, question) in enumerate(zip(first_responses,last_responses, questions[i:i+batch_size])):
-
-                    completions.append({
-                        'category': categories[i + generation_idx],
-                        'prompt': instructions[i + generation_idx],
-                        'question': question,
-                        'first_response': first_response,
-                        'last_response': last_response
-                    })
-
-
-        return completions
