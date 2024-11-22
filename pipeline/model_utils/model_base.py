@@ -73,7 +73,7 @@ class ModelBase(ABC):
         if chat_histories is None:
             chat_histories = [[] for _ in range(len(instructions))]
         conversations = [self.get_conversation(instruction, chat_history) for instruction, chat_history in zip(instructions, chat_histories)]
-        toks = self.tokenizer.apply_chat_template(conversations, add_generation_prompt=True,padding=True,truncation=False, return_tensors="pt").to("cuda")
+        toks = self.tokenizer.apply_chat_template(conversations, add_generation_prompt=True,padding=True,truncation=False, return_tensors="pt", return_dict=True).to("cuda")
         return toks
 
 
@@ -90,7 +90,8 @@ class ModelBase(ABC):
 
         with add_hooks(module_forward_pre_hooks=fwd_pre_hooks, module_forward_hooks=fwd_hooks):
                 generation_toks = self.model.generate(
-                    input_ids=tokenized_instructions.to(self.model.device),
+                    input_ids=tokenized_instructions['input_ids'].to(self.model.device),
+                    attention_mask=tokenized_instructions['attention_mask'].to(self.model.device),
                     generation_config=generation_config,
                 )
 
@@ -120,7 +121,7 @@ class ModelBase(ABC):
     def generate_single_answer(self, dataset, fwd_pre_hooks=[], fwd_hooks=[], batch_size=2, max_new_tokens=300):
         """This function generates a response to a prompt."""
         generation_config = GenerationConfig(max_new_tokens=max_new_tokens, do_sample=False)
-        generation_config.pad_token_id = self.tokenizer.pad_token_id
+        generation_config.pad_token_id = self.tokenizer.eos_token_id
 
         completions = []
         questions = [x['question'] for x in dataset]
@@ -148,7 +149,7 @@ class ModelBase(ABC):
     def generate_completions(self, dataset, fwd_pre_hooks=[], fwd_hooks=[], batch_size=2, max_new_tokens=300):
         """This function generate a first response to a prompt and then a second response to a question."""
         generation_config = GenerationConfig(max_new_tokens=max_new_tokens, do_sample=False)
-        generation_config.pad_token_id = self.tokenizer.pad_token_id
+        generation_config.pad_token_id = self.tokenizer.eos_token_id
 
         completions = []
         instructions = [x['prompt'] for x in dataset]
