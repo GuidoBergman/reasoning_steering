@@ -8,15 +8,17 @@
 
 import numpy as np
 from numpy import array
+import re
+
 from abstract_and_reason.graphics import Graphics
 from abstract_and_reason.assets import load_json
 from abstract_and_reason.utils import convert_puzzle_to_prompts
-import json
-import re
+from abstract_and_reason.default_prompts import *
 
-DEFAULT_PROMPT_PREFIX = "Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.\n"
 
-DEFAULT_PROMPT_SUFFIX = "\nYour anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
+
+
+
 
 class Solver:
     """
@@ -26,7 +28,7 @@ class Solver:
     and evaluate the performance of a model.
     """
 
-    def __init__(self, model, prompt_prefix=None, prompt_suffix=None, prod=False) -> None:
+    def __init__(self, model, prompt_prefix=None, prompt_suffix=None, prod=False, long_prompt=False) -> None:
         self.graphics = Graphics()
 
         if prod:
@@ -40,8 +42,12 @@ class Solver:
           self.prompt_prefix = prompt_prefix
           self.prompt_suffix = prompt_suffix
         else:
-          self.prompt_prefix = DEFAULT_PROMPT_PREFIX
-          self.prompt_suffix = DEFAULT_PROMPT_SUFFIX
+          if not long_prompt:
+            self.prompt_prefix = DEFAULT_PROMPT_SHORT_PREFIX
+            self.prompt_suffix = DEFAULT_PROMPT_SHORT_SUFFIX
+          else:
+            self.prompt_prefix = DEFAULT_PROMPT_LONG_PREFIX
+            self.prompt_suffix = DEFAULT_PROMPT_LONG_SUFFIX
 
         self.training_challenges = load_json(
             self.base_path + 'arc-agi_training_challenges.json')
