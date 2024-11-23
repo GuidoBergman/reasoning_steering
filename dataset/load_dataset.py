@@ -19,3 +19,23 @@ def load_dataset(challenge_ids, solver, challenges=None, solutions=None):
     ]
  
     return dataset
+
+
+
+def load_dataset_by_challenge(challenge_ids, solver, challenges=None, solutions=None):
+    dataset = []
+    for id in challenge_ids:
+        questions_challenge, solutions_challenge = solver.convert_challenge_to_prompts(id, challenges, solutions)
+    
+        dataset.append([{
+            'question': question,
+            'prompt': None,
+            'first_response': None,
+            'category': id,
+            'correct_answer': solution,
+            'correct_answer_str': convert_array_to_str(solution)
+        } for question, solution, id in zip(questions_challenge, solutions_challenge)
+    ])
+
+ 
+    return dataset
