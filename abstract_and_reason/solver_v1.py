@@ -14,12 +14,9 @@ from abstract_and_reason.utils import convert_puzzle_to_prompts
 import json
 import re
 
-DEFAULT_PROMPT = """
-Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.
+DEFAULT_PROMPT_PREFIX = "Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.\n"
 
-Your anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation.
-
-"""
+DEFAULT_PROMPT_SUFFIX = "\nYour anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
 
 class Solver:
     """
@@ -29,7 +26,7 @@ class Solver:
     and evaluate the performance of a model.
     """
 
-    def __init__(self, model, prompt=None, prod=False) -> None:
+    def __init__(self, model, prompt_prefix=None, prompt_suffix=None, prod=False) -> None:
         self.graphics = Graphics()
 
         if prod:
@@ -39,10 +36,12 @@ class Solver:
 
         self.model = model
 
-        if prompt:
-          self.prompt = prompt
+        if prompt_prefix or prompt_suffix:
+          self.prompt_prefix = prompt_prefix
+          self.prompt_suffix = prompt_suffix
         else:
-          self.prompt = DEFAULT_PROMPT
+          self.prompt_prefix = DEFAULT_PROMPT_PREFIX
+          self.prompt_suffix = DEFAULT_PROMPT_SUFFIX
 
         self.training_challenges = load_json(
             self.base_path + 'arc-agi_training_challenges.json')
@@ -96,7 +95,7 @@ class Solver:
                                                                                                         solutions=solutions)  
         
         puzzle_prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
-        prompts = [ self.prompt + puzzle_prompt for puzzle_prompt in puzzle_prompts]
+        prompts = [ self.prompt_prefix + puzzle_prompt for puzzle_prompt in puzzle_prompts + self.prompt_suffix]
          
         return prompts, puzzle_outs_test
 
