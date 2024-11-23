@@ -1,6 +1,6 @@
 DEFAULT_PROMPT_SHORT_PREFIX = "Below are pairs of matrices. There is a mapping which operates on each input to give the output, only one mapping applies to all matrices. Review the matrices to learn that mapping and then estimate the missing output for the final input matrix.\n"
 
-DEFAULT_PROMPT_SHORT_SUFFIX = "\nYour anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
+DEFAULT_PROMPT_SHORT_SUFFIX = "\nYour answer must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
 
 
 DEFAULT_PROMPT_LONG_PREFIX = """
@@ -48,5 +48,5 @@ Use these patterns to guide your own hypotheses on the training data.
 DEFAULT_PROMPT_LONG_SUFFIX = """
 ## 3. PREDICT THE OUTPUT GRID FOR THE TEST INPUT GRID
 
-Your anwser must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
+Your answer must contain ONLY your predicted output in np.array format, and no preamble, no prefix, and no punctuation."
 """
