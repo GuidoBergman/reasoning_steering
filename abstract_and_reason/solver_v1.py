@@ -95,7 +95,7 @@ class Solver:
                                                                                                         solutions=solutions)  
         
         puzzle_prompts = convert_puzzle_to_prompts(puzzle_inps_train, puzzle_outs_train, puzzle_inps_test)
-        prompts = [ self.prompt_prefix + puzzle_prompt for puzzle_prompt in puzzle_prompts + self.prompt_suffix]
+        prompts = [ self.prompt_prefix + puzzle_prompt + self.prompt_suffix for puzzle_prompt in puzzle_prompts]
          
         return prompts, puzzle_outs_test
 
